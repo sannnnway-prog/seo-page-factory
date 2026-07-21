@@ -20,6 +20,24 @@ function Invoke-Checked {
   }
 }
 
+function Invoke-CaptureNative {
+  param(
+    [string]$FilePath,
+    [string[]]$Arguments
+  )
+
+  $previousPreference = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  $output = & $FilePath @Arguments 2>&1
+  $exitCode = $LASTEXITCODE
+  $ErrorActionPreference = $previousPreference
+
+  return [pscustomobject]@{
+    ExitCode = $exitCode
+    Output = $output
+  }
+}
+
 function Test-GitHubRepo {
   param([string]$NameWithOwner)
 
@@ -166,15 +184,14 @@ try {
 Invoke-Checked $Git @("checkout", "-B", $defaultBranch) "Cannot switch to $defaultBranch."
 
 $hasRemoteBranch = $false
-$fetchOutput = & $Git fetch origin $defaultBranch 2>&1
-$fetchExitCode = $LASTEXITCODE
-if ($fetchExitCode -eq 0) {
+$fetchResult = Invoke-CaptureNative $Git @("fetch", "origin", $defaultBranch)
+if ($fetchResult.ExitCode -eq 0) {
   $hasRemoteBranch = $true
-} elseif (($fetchOutput -join "`n") -match "couldn't find remote ref|could not find remote ref|fatal: couldn't find remote ref") {
+} elseif (($fetchResult.Output -join "`n") -match "couldn't find remote ref|could not find remote ref|fatal: couldn't find remote ref") {
   $hasRemoteBranch = $false
 } else {
   [Console]::Error.WriteLine("Cannot fetch remote branch $defaultBranch from $Repo.")
-  [Console]::Error.WriteLine(($fetchOutput -join [Environment]::NewLine))
+  [Console]::Error.WriteLine(($fetchResult.Output -join [Environment]::NewLine))
   exit 1
 }
 
@@ -220,10 +237,10 @@ if ($pending) {
   Write-Host "No local skill changes to commit."
 }
 
-$pushOutput = & $Git push -u origin $defaultBranch 2>&1
-if ($LASTEXITCODE -ne 0) {
+$pushResult = Invoke-CaptureNative $Git @("push", "-u", "origin", $defaultBranch)
+if ($pushResult.ExitCode -ne 0) {
   [Console]::Error.WriteLine("Git push failed; trying GitHub API fallback.")
-  [Console]::Error.WriteLine(($pushOutput -join [Environment]::NewLine))
+  [Console]::Error.WriteLine(($pushResult.Output -join [Environment]::NewLine))
 
   $apiFallback = Join-Path $Root "push-skills-via-gh-api.ps1"
   if (-not (Test-Path -LiteralPath $apiFallback)) {
