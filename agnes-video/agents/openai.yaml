@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agnes Video"
+  short_description: "Generate videos through Broly Agnes API"
+  default_prompt: "Generate a short video with Agnes."

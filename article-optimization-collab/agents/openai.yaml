@@ -1,0 +1,4 @@
+interface:
+  display_name: "Article Optimization Collab"
+  short_description: "Preservation-first SEO refresh, evidence, links, and WordPress packaging"
+  default_prompt: "Use $article-optimization-collab to inspect the live article, apply the project non-negotiables, preserve the source, refresh current models and links, deliver WordPress HTML plus the SEO workbench, and capture reusable user corrections into the skill immediately."

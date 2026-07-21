@@ -1,0 +1,7 @@
+interface:
+  display_name: "WordPress Blog Format"
+  short_description: "SEO blog drafts in WordPress format"
+  default_prompt: "Use $wordpress-blog-format to draft or optimize this blog post."
+
+policy:
+  allow_implicit_invocation: true

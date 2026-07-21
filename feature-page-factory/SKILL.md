@@ -37,6 +37,8 @@ By default, the agent does not upload images, does not publish pages, does not b
 - Do not invent social URLs. If no clean qualified social source is available, remove the public social block by leaving the social module `links` empty and record why; do not delete the required module object from the saved OMS config.
 - Do not add root-level `modelConfig`; model settings belong inside `tool-workspace.modelPicker`.
 - Time every feature-page run. Record total duration and rough duration for three main stages: copy generation, image/video generation, and OMS filling.
+- Final generated image assets must be WebP files no larger than 100KB each before OMS filling, upload handoff, or final handoff.
+- Final generated video assets do not have a hard file-size cap. Keep videos as small as practical while preserving clear motion, readable subject detail, stable frames, and the intended visual effect.
 - Once a feature-page workflow has started, later user requirements are additive constraints inside the same workflow unless the user explicitly says to stop, pause, switch tasks, or only answer the new request.
 
 ## Workflow Persistence
@@ -195,6 +197,7 @@ Keep non-useful required modules present but empty or disabled:
 - `promo-bar`: keep `{ "type": "promo-bar" }` or empty text unless specifically needed; the current frontend may not display it.
 - `feature-highlights`: always fill this module with useful page-specific highlights. Do not leave it empty.
 - `feature-highlights`: use exactly 3 or exactly 6 items. Default to 3 for narrow/simple intent pages, and use 6 only when the topic is broad or competitive enough to justify more differentiators.
+- Treat public sections titled `Why Choose`, `Why choose this tool`, `Why this workflow works`, or similar as the `feature-highlights` module. They must also contain exactly 3 or exactly 6 visible items, never 4 or 5.
 - `testimonials`: mandatory User Feedback module. Fill it for every feature page.
 - `model-comparison`: keep the required module object, but fill it only when the keyword, SERP intent, user prompt, competitor expectations, or frontend strategy justifies model choice or comparison.
 - `benchmark` and `youtube`: leave empty/disabled unless the topic, SERP intent, user prompt, or frontend behavior justifies them.
@@ -412,6 +415,7 @@ Category guidance:
 - `tool-workspace` main title must be short, usually the tool name.
 - `feature-highlights` is mandatory. Use concise, specific benefits tied to the keyword and SERP intent; avoid generic claims.
 - `feature-highlights` must contain exactly 3 or exactly 6 items; never use 1, 2, 4, 5, or more than 6.
+- Any visible `Why Choose` section is a feature-highlights presentation and must also use exactly 3 or exactly 6 items. If the copy naturally wants 4 or 5, consolidate to 3 stronger benefits or expand to 6 non-redundant benefits before OMS save.
 - Use the Recommended Public Reading Order when planning or setting public display order: Tool Workspace, Hero, Examples, Feature Highlights, How To, Model Comparison when needed, User Feedback, optional proof/social modules, FAQ, then Related Links.
 - When Model Comparison or Benchmark is enabled, use the earlier model-trust order: Tool Workspace, Hero, Model Comparison, Benchmark when relevant, Examples, Feature Highlights, How To, User Feedback, optional proof/social modules, FAQ, then Related Links.
 - Feature Highlights belongs before FAQ, and Related Links belongs last.
@@ -568,11 +572,12 @@ For feature-page assets, use the `openai-next-image` skill and its `scripts/gene
 
 ## Video Generation API Policy
 
-For feature-page video assets, use the `agnes-video` skill and its `scripts/generate.py` workflow by default.
+For feature-page video assets, use the `agnes-video` skill and its `scripts/generate.py` workflow by default. The skill now uses the Broly/New API Kling video integration by default.
 
 - The configured provider is `https://anywhere.broly.ai/v1` unless `AGNES_BASE_URL` or `OPENAI_NEXT_BASE_URL` overrides it.
 - Read the API key from `AGNES_API_KEY`; if absent, the video skill may use `OPENAI_NEXT_API_KEY`.
-- The default video model is `agnes-video-v2.0`.
+- The default video model is `kling-v3`, unless `AGNES_MODEL` or `--model` overrides it.
+- Use `veo3.1-fast` for premium or high-stakes feature pages when output quality matters more than cost/time.
 - Use `scripts/generate.py`; do not rewrite the Agnes task API flow for ordinary feature video requests.
 - Do not create fake local videos as a substitute for failed API output. If Agnes fails, report the real provider error and mark the video asset as blocked or retryable.
 - Text-to-video omits `--image`.
@@ -580,13 +585,14 @@ For feature-page video assets, use the `agnes-video` skill and its `scripts/gene
 - Keyframe animation passes two or more public HTTPS image URLs with repeated `--image`.
 - Multi-reference video passes two or more public HTTPS image URLs plus `--agnes-mode reference`.
 - Agnes does not accept local image files in this workflow. For image-to-video based on local generated images, first generate the still image, convert/upload it through the normal static URL workflow, then use the public HTTPS static URL as the Agnes reference.
-- Default video options are `duration: 5`, `aspect_ratio: 16:9`, and `resolution: 720p` unless the page intent requires another supported value.
+- Default video options are `duration: 5`, `aspect_ratio: 16:9`, `resolution: 720p`, and output path like `outputs/kling-video.mp4` unless the page intent requires another supported value.
 - Supported durations are `3`, `5`, `10`, and `18` seconds.
 - Supported video aspect ratios are `16:9`, `9:16`, `1:1`, `4:3`, and `3:4`.
 - Supported resolutions are `480p`, `720p`, and `1080p`.
 - The script submits tasks to `POST /v1/tasks`, polls `GET /v1/tasks/{task_id}`, downloads `result_url` on `SUCCESS`, and saves a local video file.
 - Download the final `result_url` without sending API keys to the CDN.
 - After generation, verify the output file exists and has nonzero size; inspect metadata when practical.
+- Do not enforce a fixed maximum video size for feature-page video assets. Optimize for the smallest practical file that still looks clear and useful on the landing page. Prefer short clips, efficient motion, 480p or 720p when sufficient, and compact encoding. If compression visibly hurts clarity, stability, or the intended effect, keep the clearer version and record the file-size tradeoff in the manifest or handoff.
 
 ## Image Lighting And Brightness
 
@@ -665,9 +671,11 @@ Filenames must be lowercase English, short, descriptive, hyphen-separated, and u
 
 Do not name images by module position such as `example-black-and-white.webp`.
 
-Generate PNG image candidates under the page asset folder, convert selected PNGs to WebP with `python .\convert_assets_to_webp.py`, and delete source PNG files after successful conversion. The conversion script deletes PNG files by default.
+Generate PNG image candidates under the page asset folder, convert selected PNGs to WebP with `python .\convert_assets_to_webp.py`, and delete source PNG files after successful conversion. The conversion script deletes PNG files by default and enforces a 100KB maximum per final WebP image unless explicitly overridden for a non-feature-page task.
 
-For video candidates, generate directly into the page asset folder as `.mp4` when possible. Do not convert video to WebP. If a video needs compression or format conversion, record the command and final dimensions/duration in the manifest.
+Every final selected image asset must be no larger than 100KB. Apply this in order: WebP compression, light proportional downscaling while preserving the exact intended aspect ratio, then regenerate a simpler/cleaner image if the file still cannot meet the cap without falling below landing-page quality. Do not ask the user to upload oversized images, and do not mark the asset stage complete while any selected WebP exceeds 100KB.
+
+For video candidates, generate directly into the page asset folder as `.mp4` when possible. Do not convert video to WebP. Compress selected videos only when it preserves the intended clarity and effect; do not damage the output merely to hit an arbitrary size. If a video needs compression or format conversion, record the command and final dimensions/duration/file size in the manifest.
 
 Every selected manifest item must include `mediaType` and `aspectRatio`. Do not rely on the filename, module name, or prompt alone to imply ratio.
 
@@ -677,9 +685,9 @@ Mandatory default ratios:
 - Tool Workspace: `4:3` only. These are pure result/content images, not UI operation screenshots.
 - Examples: `3:4` by default; `9:16`, `9:21`, or `4:3` are allowed only when the example category and OMS/page layout specifically call for that size. The manifest must record the exact ratio.
 
-For each selected image, record actual pixel dimensions in the manifest after WebP conversion when possible.
+For each selected image, record actual pixel dimensions and file size in bytes/KB in the manifest after WebP conversion when possible.
 
-For each selected video, record actual width, height, duration, resolution, aspect ratio, local path, static URL, and upload status in the manifest when possible.
+For each selected video, record actual width, height, duration, resolution, aspect ratio, file size in bytes/KB/MB, local path, static URL, and upload status in the manifest when possible.
 
 ## Image And Video Counts And QA
 
@@ -709,20 +717,22 @@ Each page needs an asset manifest recording:
 - mediaType
 - aspectRatio
 - actual width and height after conversion
+- fileSizeBytes and fileSizeKB for every selected image
 - duration for video
+- fileSizeBytes and fileSizeMB for every selected video
 - score
 - reroll count
 - local path
 - static URL
 - upload status
 
-Before OMS filling or final handoff, run asset ratio validation:
+Before OMS filling or final handoff, run asset ratio and media validation:
 
 ```powershell
 python .\validate_asset_ratios.py ".\素材库\<page-slug>"
 ```
 
-If validation fails, fix or regenerate the wrong-ratio media before continuing. Do not ask the user to upload wrong-ratio assets. Do not mark the feature page complete while asset ratio validation is failing.
+If validation fails, fix or regenerate the wrong-ratio, missing, empty, or oversized image media before continuing. Do not ask the user to upload wrong-ratio assets, WebP images over 100KB, or empty/broken videos. Do not mark the feature page complete while asset validation is failing.
 
 ## Timing Tracker
 
@@ -762,6 +772,8 @@ Upload limits:
 
 - Images: `jpeg`, `png`, `gif`, `bmp`, `webp`; max 10 MB per file.
 - Videos: `mp4`, `avi`, `mov`, `wmv`, `flv`, `webm`, `ogg`, `mkv`; max 1000 MB per file.
+
+Feature-page image handoff uses a stricter internal cap than OMS: each final selected WebP image must be 100KB or smaller even though OMS allows larger uploads. Video handoff has no fixed internal cap; keep videos as small as practical while preserving clarity and effect.
 
 When asking the user to upload assets, list each local media path on its own line so it can be copied one by one. Include WebP images and video files separately.
 
@@ -817,6 +829,9 @@ Because the AI drawer can modify or create content only after the confirm-write 
 - Before opening or editing OMS, acquire an OMS tab lane with `python .\oms_lock.py acquire --owner "<thread/page>" --path "<page-slug>" --open-tab --launch-browser --wait-login`.
 - If one lane is acquired, use only that lane's returned `target_id`, `debug_url`, and tab for this page.
 - If all configured tab lanes are busy, either increase `--lanes` or continue local draft/assets and leave the page at `ready_for_oms_lane`.
+- For a single page, default to one OMS lane, one browser tab, one edit drawer, and one final save after all local draft/media fields are ready. Do not open extra OMS windows/tabs for the same page just to check fields.
+- Extra OMS opens or extra saves are allowed only for real recovery or QA needs: skeleton creation failure, save validation failure, dynamic-list read-back failure, stale OMS form-list items, login/session loss, or a new user requirement after the first fill.
+- Avoid saving after each module. Fill all visible fields in one focused pass, read back dynamic lists before save, then save once and do post-save status/version checks.
 - Use visible form fields.
 - Use Playwright-style `fill()` where possible.
 - Do not type field content character by character.
@@ -905,7 +920,7 @@ Before drafting copy or assets, complete the SERP intent and competitor check. U
 8. Generate candidate images and/or videos into `素材库/<page-slug>/candidates/` when useful.
 9. Select final media, convert selected images to WebP, keep selected videos in their final upload format, and place them in `素材库/<page-slug>/selected/`.
 10. Create or update the asset manifest and static URLs.
-11. Run `python .\validate_asset_ratios.py ".\素材库\<page-slug>"` and fix any wrong-ratio assets before OMS filling.
+11. Run `python .\validate_asset_ratios.py ".\素材库\<page-slug>"` and fix any wrong-ratio, over-100KB image, or empty/broken video assets before OMS filling.
 11. Acquire an OMS tab lane.
 12. Use the acquired shared-login OMS tab to create the OMS draft skeleton and fill visible fields in one focused pass.
 13. Prefill media fields with matching `https://static.futureshareai.com/glb_features/<filename>.<ext>` URLs.
@@ -930,7 +945,7 @@ Fastest does not mean skipping SERP intent. Before local drafting, do the keywor
 5. Save the backup under `草稿备份` before touching OMS.
 6. Generate and select all needed images and/or videos, then convert selected PNG images to WebP while keeping selected videos in final upload format.
 7. Update the backup with final filenames, static URLs, image/video QA scores, timing data, and upload checklist.
-8. Run `python .\validate_asset_ratios.py ".\素材库\<page-slug>"` and fix any wrong-ratio assets.
+8. Run `python .\validate_asset_ratios.py ".\素材库\<page-slug>"` and fix any wrong-ratio, over-100KB image, or empty/broken video assets.
 9. Only after local draft and assets are complete and ratio validation passes, acquire/open an OMS tab lane with `python .\oms_lock.py acquire --owner "<page-slug>" --path "<page-slug>" --open-tab --launch-browser --wait-login`.
 9. Open the acquired shared-login OMS tab lane and fill the draft in one focused pass.
 10. Save OMS with all known static image/media URLs already filled.
@@ -1039,8 +1054,10 @@ Before handoff, verify:
 - Pre-Generation Visual Audit exists in the backup draft or manifest, including goodReferences, badReferences, and promptImplications.
 - Media URLs match local selected filenames and final extensions.
 - Every selected manifest item has `mediaType` and `aspectRatio`.
-- Actual image dimensions pass `python .\validate_asset_ratios.py ".\素材库\<page-slug>"`.
-- Selected video files have nonzero size and recorded width, height, duration, resolution, and aspect ratio when practical.
+- Actual image dimensions, WebP file sizes, and video existence/non-empty checks pass `python .\validate_asset_ratios.py ".\素材库\<page-slug>"`.
+- Every selected WebP image is no larger than 100KB, and oversized images are recompressed, proportionally downscaled, or regenerated before upload handoff.
+- Every selected image manifest item records actual dimensions plus `fileSizeBytes`/`fileSizeKB`.
+- Selected video files have nonzero size, record width, height, duration, resolution, aspect ratio, and `fileSizeBytes`/`fileSizeMB` when practical, and are compressed only as far as quality allows.
 - All known image/media URL fields are prefilled before the user upload request.
 - Hero has 1 image.
 - Image Workspace has at least 4 images across 4 styles/use cases when the page is image-primary.
@@ -1104,8 +1121,10 @@ A feature-page task is not complete until all applicable items below are true or
 - Required media assets are generated, QA checked, converted to final upload format, and stored under `素材库/<page-slug>/selected/`.
 - Selected images are converted to WebP; selected videos remain in their final video upload format such as MP4.
 - Asset manifest exists and maps each selected media file to its static URL.
-- Asset manifest includes `mediaType`, `aspectRatio`, actual dimensions for selected images, and video width/height/duration when practical.
-- Asset ratio validation passes before OMS filling and before asking the user to upload.
+- Asset manifest includes `mediaType`, `aspectRatio`, actual dimensions and file size for selected images, and video width/height/duration/file size when practical.
+- Asset ratio and media validation passes before OMS filling and before asking the user to upload.
+- Every selected WebP image is 100KB or smaller.
+- Every selected video is clear enough for the landing page and as small as practical without visible quality loss.
 - Local backup draft exists under `草稿备份`.
 - OMS is filled through a shared-login Chrome OMS tab lane using visible fields.
 - All known image/media URLs are prefilled with matching `https://static.futureshareai.com/glb_features/<filename>.<ext>` URLs before the user upload request.
@@ -1132,7 +1151,7 @@ For a single page, report:
 - prefilled static URLs
 - image/video QA scores
 - pre-generation visual audit summary
-- asset ratio validation result
+- asset ratio and media validation result
 - keyword density report
 - timing summary: copy generation, image/video generation, OMS filling, and total duration
 - upload pending reminder

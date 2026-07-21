@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Page Factory"
+  short_description: "OMS feature page drafts and assets"
+  default_prompt: "Create an OMS feature page draft from a keyword using the feature page factory workflow."

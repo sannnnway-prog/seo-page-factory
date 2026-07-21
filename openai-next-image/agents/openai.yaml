@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenAI Next Image"
+  short_description: "Generate images through an OpenAI-compatible image API endpoint."
+  default_prompt: "Generate an image using the OpenAI Next image endpoint."
