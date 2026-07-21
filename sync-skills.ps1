@@ -179,6 +179,16 @@ if ($fetchExitCode -eq 0) {
 }
 
 if ($hasRemoteBranch) {
+  & $Git diff --quiet HEAD "origin/$defaultBranch"
+  $treeDiffExitCode = $LASTEXITCODE
+
+  if ($treeDiffExitCode -eq 0) {
+    $divergence = (& $Git rev-list --left-right --count "HEAD...origin/$defaultBranch").Trim()
+    if ($divergence -and $divergence -ne "0`t0" -and $divergence -ne "0 0") {
+      Write-Host "Local and remote trees match; aligning local branch pointer to origin/$defaultBranch."
+      Invoke-Checked $Git @("reset", "--soft", "origin/$defaultBranch") "Cannot align local branch pointer to origin/$defaultBranch."
+    }
+  } else {
   $mergeBase = ""
   try {
     $mergeBase = (& $Git merge-base HEAD "origin/$defaultBranch").Trim()
@@ -190,6 +200,7 @@ if ($hasRemoteBranch) {
     Invoke-Checked $Git @("pull", "--rebase", "--autostash", "origin", $defaultBranch) "Remote changes conflict with local skills. Resolve the conflict, then rerun sync-skills.ps1."
   } else {
     Invoke-Checked $Git @("merge", "--allow-unrelated-histories", "--no-edit", "origin/$defaultBranch") "Remote changes conflict with local skills. Resolve the conflict, then rerun sync-skills.ps1."
+  }
   }
 }
 
