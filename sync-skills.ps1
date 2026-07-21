@@ -209,5 +209,21 @@ if ($pending) {
   Write-Host "No local skill changes to commit."
 }
 
-Invoke-Checked $Git @("push", "-u", "origin", $defaultBranch) "Cannot push skills to GitHub. Check network and GitHub auth."
+$pushOutput = & $Git push -u origin $defaultBranch 2>&1
+if ($LASTEXITCODE -ne 0) {
+  [Console]::Error.WriteLine("Git push failed; trying GitHub API fallback.")
+  [Console]::Error.WriteLine(($pushOutput -join [Environment]::NewLine))
+
+  $apiFallback = Join-Path $Root "push-skills-via-gh-api.ps1"
+  if (-not (Test-Path -LiteralPath $apiFallback)) {
+    [Console]::Error.WriteLine("Cannot find API fallback script: $apiFallback")
+    exit 1
+  }
+
+  & powershell -ExecutionPolicy Bypass -File $apiFallback -Repo $Repo -Branch $defaultBranch -SkillsRoot $Root
+  if ($LASTEXITCODE -ne 0) {
+    [Console]::Error.WriteLine("GitHub API fallback failed.")
+    exit 1
+  }
+}
 Write-Host "Synced skills to https://github.com/$Repo"
