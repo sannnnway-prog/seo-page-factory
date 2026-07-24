@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Product Workflow"
+  short_description: "Modular AI product workflow from framing to demo acceptance"
+  default_prompt: "Use $ai-product-workflow to guide the current AI product stage."

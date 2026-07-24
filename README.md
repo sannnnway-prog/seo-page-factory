@@ -1,9 +1,34 @@
-# Codex Personal Skills
+# SEO Page Factory Skills
 
-This repository stores personal Codex skills from `C:\Users\86180\.codex\skills`.
+This repository contains the categorized Codex skills for this workflow.
 
-System-provided skills in `.system/`, generated Python caches, logs, and local
-environment files are intentionally ignored.
+## Included Skills
 
-Run `.\sync-skills.ps1` from this directory to pull remote updates, commit local
-skill changes, and push the result to GitHub.
+- feature-page-factory
+- agnes-video
+- ark-seedream-image
+- openai-next-image
+- gpt-image
+- globalgpt
+- globalgpt-coding
+- globalgpt-image
+- globalgpt-video
+- ai-product-workflow
+- figma-create-design-system-rules
+- awesome-design-md
+
+## Manual Sync
+
+Pull this repository into local Codex skills:
+
+``powershell
+.\pull-to-codex.ps1
+``
+
+Push local Codex skill edits back to GitHub:
+
+``powershell
+.\push-from-codex.ps1
+``
+
+Scripts intentionally exclude .system/, Python caches, .env*, and logs.

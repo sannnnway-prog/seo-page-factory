@@ -256,10 +256,11 @@ URL validation:
 
 - Media URLs and normal URL fields must be `http://` or `https://`.
 - `buttonUrl` and fields named `url` also allow site-relative `/...` paths and page `#anchor` links.
-- Every internal GLB GPT navigation/conversion link that leaves the current anchor view must include the current page inviter query: `?inviter=features_<current-page-slug>&login=1`.
-- Use the page slug without `/features/` as `<current-page-slug>`, for example `/features/ai-menu-generator?inviter=features_ai-menu-generator&login=1`.
-- If the internal URL already has a query string, append `&inviter=features_<current-page-slug>&login=1`; if it has a hash, place the query before the hash.
-- Apply this to module `buttonUrl`, Example jump links, cross-format model-page links, `/home`, `/pricing`, `/features/...`, `/image-generator/...`, `/video-generator/...`, and Related Links when they are used as clickable internal navigation.
+- Only GLB GPT homepage and model homepage conversion links require the current page inviter query: `?inviter=features_<current-page-slug>&login=1`. Ordinary editorial/internal links such as `/hub/...`, `/features/...`, Related Links, and same-page anchors do not get inviter tracking.
+- Use the page slug without `/features/` as `<current-page-slug>`. Examples: `/home?inviter=features_ai-menu-generator&login=1` and `/home/gpt-image-2?inviter=features_ai-menu-generator&login=1`.
+- If a homepage/model URL already has a query string, append `&inviter=features_<current-page-slug>&login=1`; if it has a hash, place the query before the hash.
+- Apply this to homepage/model module `buttonUrl`, model CTA links, and cross-format model-page links. Do not apply it to `/hub/...` blog links, `/features/...` related links, ordinary tool/article navigation, static media URLs, external competitor/research/social URLs, or OMS/static upload URLs.
+- Bare GLB GPT homepage/model links such as `https://www.glbgpt.com`, `/home`, or `/home/<model-slug>` fail QA unless they are pure non-clickable text examples. Tracked `/hub/...` links also fail QA because blog/article links should remain clean.
 - Do not add inviter parameters to pure same-page anchors such as `#tool-workspace`, static media URLs, external competitor/research/social URLs, or OMS/static upload URLs.
 - Do not save root-level `modelConfig`; the editor will reject it. Normalize old `modelConfig` into `tool-workspace.modelPicker`.
 - The editor normalizes old `sections` to `modules`, old `hero.imageUrl/images` to `hero.heroImages`, and old social-proof links into `youtube`/`twitter`/`reddit`.
@@ -269,7 +270,7 @@ Example button/link behavior:
 - `examples.items[].buttonText` and `buttonUrl` are optional.
 - Each Example item must represent one output media type. Do not put both `imageUrl` and `videoUrl` on the same Example item for the same prompt.
 - If the same concept needs both an image example and a video example, split it into two Example items with separate titles/categories and only one media URL each. The prompts can be related, but the image item should only have `imageUrl` and the video item should only have `videoUrl`.
-- Use `Try This Prompt` with `/features/<path>?inviter=features_<current-page-slug>&login=1` only when the Example's media/output format matches the Tool Workspace primary mode and the click will satisfy the user's expectation.
+- Use `Try This Prompt` with a clean `/features/<path>` link only when the Example's media/output format matches the Tool Workspace primary mode and the click will satisfy the user's expectation. Do not add inviter tracking to `/features/...` links.
 - If Tool Workspace is LLM/document and an Example is image-only or video-only inspiration, usually leave `buttonText` and `buttonUrl` empty so the card works as a visual/reference example instead of a misleading generator jump.
 - If Tool Workspace is image/video and an Example is text-only or document-only inspiration, also avoid forced generator jumps unless the link/action is explicitly useful.
 - A cross-format Example may link only when the button text names the real action, such as `Use This Brief`, `Draft This Prompt`, or `View Workflow`, and the destination genuinely supports that action.
@@ -1068,7 +1069,7 @@ Before handoff, verify:
 - Each Example item has only one output media URL type: either `imageUrl` or `videoUrl`, not both. If a concept needs both image and video, it is split into separate Example items.
 - Cross-format Example cards do not have misleading `buttonUrl` jumps. If an Example's media format differs from the Tool Workspace primary mode, its button is empty or its button text/action clearly matches the real supported workflow.
 - Cross-format Example links, when used, point to sitemap-confirmed same-format GLB GPT destinations such as image model pages for image examples, not to an incompatible current-page workspace.
-- Internal GLB GPT navigation/conversion links include `inviter=features_<current-page-slug>&login=1`; pure same-page anchors such as `#tool-workspace` are exempt.
+- GLB GPT homepage/model conversion links include `inviter=features_<current-page-slug>&login=1`; `/hub/...`, `/features/...`, Related Links, tool/article navigation, and pure same-page anchors such as `#tool-workspace` remain untracked.
 - FAQ has at most 5 items.
 - Related Links is the final public/internal-link module.
 - Related Links contains exactly 4 sitemap-confirmed links, each with a keyword/search-intent relevance reason.
@@ -1100,7 +1101,7 @@ A feature-page task is not complete until all applicable items below are true or
 - Example items do not combine `imageUrl` and `videoUrl`; same-concept image/video outputs are split into separate items.
 - Cross-format Examples either omit `buttonText`/`buttonUrl` or use a non-misleading action that matches the Tool Workspace's real primary mode.
 - If a cross-format Example links to another GLB GPT page, that destination is sitemap-confirmed, same-format, and named by accurate button text.
-- All internal GLB GPT jump/conversion links that are not pure anchors include `?inviter=features_<current-page-slug>&login=1` or `&inviter=features_<current-page-slug>&login=1`.
+- All GLB GPT homepage/model conversion links include `?inviter=features_<current-page-slug>&login=1` or `&inviter=features_<current-page-slug>&login=1`; `/hub/...`, `/features/...`, and Related Links remain clean unless the user explicitly provides a tracked URL.
 - The page plan states how the page will exceed competitor pages, or clearly reports which competitor-critical requirement the current feature factory cannot support.
 - Page copy and modules have been drafted according to this skill.
 - Conversion copy pass has been completed and recorded in the local draft or QA notes.
